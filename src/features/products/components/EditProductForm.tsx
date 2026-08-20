@@ -1,0 +1,297 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { updateProduct } from "@/src/features/products/actions";
+import { slugify } from "@/src/lib/utils";
+import { Loader2, ArrowLeft, Trash2, Star } from "lucide-react";
+import Link from "next/link";
+import { deleteProductImageAction, setPrimaryImage } from "@/src/features/products/image-actions";
+
+interface Category {
+  id: string;
+  name: string;
+}
+
+interface ProductImage {
+  id: string;
+  url: string;
+  altText: string | null;
+  isPrimary: boolean;
+  position: number;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  brand: string | null;
+  price: string;
+  compareAtPrice: string | null;
+  sku: string;
+  stock: number;
+  fragranceNotes: Record<string, string>;
+  volumeMl: number;
+  gender: string;
+  isPublished: boolean;
+  isFeatured: boolean;
+  categoryId: string;
+  images: ProductImage[];
+}
+
+export default function EditProductForm({ product, categories }: { product: Product; categories: Category[] }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [name, setName] = useState(product.name);
+  const [slug, setSlug] = useState(product.slug);
+  const [images, setImages] = useState<ProductImage[]>(product.images);
+
+  const handleNameChange = (val: string) => {
+    setName(val);
+    setSlug(slugify(val));
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    const fd = new FormData(e.currentTarget);
+
+    const payload = {
+      name: fd.get("name") as string,
+      slug: fd.get("slug") as string,
+      description: fd.get("description") as string,
+      brand: fd.get("brand") as string || undefined,
+      price: parseFloat(fd.get("price") as string),
+      compareAtPrice: fd.get("compareAtPrice") ? parseFloat(fd.get("compareAtPrice") as string) : null,
+      sku: fd.get("sku") as string,
+      stock: parseInt(fd.get("stock") as string, 10),
+      fragranceNotes: {
+        top: fd.get("notesTop") as string,
+        middle: fd.get("notesMiddle") as string,
+        base: fd.get("notesBase") as string,
+      },
+      volumeMl: parseInt(fd.get("volumeMl") as string, 10),
+      gender: fd.get("gender") as "MALE" | "FEMALE" | "UNISEX",
+      isPublished: fd.get("isPublished") === "on",
+      isFeatured: fd.get("isFeatured") === "on",
+      categoryId: fd.get("categoryId") as string,
+    };
+
+    startTransition(async () => {
+      const result = await updateProduct(product.id, payload);
+      if (!result.success) {
+        setError(result.error || "Failed to update product.");
+      } else {
+        setSuccess("Product updated successfully!");
+        router.refresh();
+      }
+    });
+  };
+
+  const handleDeleteImage = async (imageId: string) => {
+    setIsDeleting(imageId);
+    const result = await deleteProductImageAction(imageId);
+    if (result.success) {
+      setImages((prev) => prev.filter((img) => img.id !== imageId));
+    } else {
+      setError(result.error || "Failed to delete image.");
+    }
+    setIsDeleting(null);
+  };
+
+  const handleSetPrimary = async (imageId: string) => {
+    const result = await setPrimaryImage(imageId, product.id);
+    if (result.success) {
+      setImages((prev) => prev.map((img) => ({ ...img, isPrimary: img.id === imageId })));
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-8">
+      {error && (
+        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+      )}
+      {success && (
+        <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">{success}</div>
+      )}
+
+      {/* Current Images */}
+      {images.length > 0 && (
+        <section className="bg-white border border-stone-100 rounded-xl shadow-sm p-6 space-y-4">
+          <h2 className="font-serif text-lg font-medium text-stone-900 border-b border-stone-100 pb-3">Product Images</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {images.map((img) => (
+              <div key={img.id} className={`relative group rounded-lg overflow-hidden border-2 ${img.isPrimary ? "border-amber-500" : "border-stone-200"}`}>
+                <div className="relative aspect-square w-full bg-stone-50">
+                  <Image src={img.url} alt={img.altText || "Product image"} fill className="object-cover" sizes="150px" />
+                </div>
+                <div className="absolute inset-0 bg-stone-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  {!img.isPrimary && (
+                    <button
+                      type="button"
+                      onClick={() => handleSetPrimary(img.id)}
+                      className="p-1.5 rounded-full bg-amber-500 text-white hover:bg-amber-600 transition-colors"
+                      title="Set as primary"
+                    >
+                      <Star className="h-3 w-3" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteImage(img.id)}
+                    disabled={isDeleting === img.id}
+                    className="p-1.5 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
+                    title="Delete image"
+                  >
+                    {isDeleting === img.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                  </button>
+                </div>
+                {img.isPrimary && (
+                  <div className="absolute top-1 left-1 bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">Primary</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Basic Info */}
+      <section className="bg-white border border-stone-100 rounded-xl shadow-sm p-6 space-y-4">
+        <h2 className="font-serif text-lg font-medium text-stone-900 border-b border-stone-100 pb-3">Basic Information</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5" htmlFor="name">Product Name *</label>
+            <input id="name" name="name" type="text" required value={name} onChange={(e) => handleNameChange(e.target.value)}
+              className="w-full rounded-md border border-stone-200 px-3 py-2 text-sm text-stone-900 focus:border-amber-500 focus:outline-none" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5" htmlFor="slug">URL Slug *</label>
+            <input id="slug" name="slug" type="text" required value={slug} onChange={(e) => setSlug(e.target.value)}
+              className="w-full rounded-md border border-stone-200 px-3 py-2 text-sm text-stone-900 font-mono focus:border-amber-500 focus:outline-none" />
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5" htmlFor="description">Description *</label>
+          <textarea id="description" name="description" required rows={4} defaultValue={product.description}
+            className="w-full rounded-md border border-stone-200 px-3 py-2 text-sm text-stone-900 focus:border-amber-500 focus:outline-none" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5" htmlFor="brand">Brand</label>
+            <input id="brand" name="brand" type="text" defaultValue={product.brand || ""}
+              className="w-full rounded-md border border-stone-200 px-3 py-2 text-sm text-stone-900 focus:border-amber-500 focus:outline-none" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5" htmlFor="sku">SKU *</label>
+            <input id="sku" name="sku" type="text" required defaultValue={product.sku}
+              className="w-full rounded-md border border-stone-200 px-3 py-2 text-sm text-stone-900 font-mono focus:border-amber-500 focus:outline-none" />
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing & Inventory */}
+      <section className="bg-white border border-stone-100 rounded-xl shadow-sm p-6 space-y-4">
+        <h2 className="font-serif text-lg font-medium text-stone-900 border-b border-stone-100 pb-3">Pricing & Inventory</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5" htmlFor="price">Price (PKR) *</label>
+            <input id="price" name="price" type="number" required min="0" step="0.01" defaultValue={product.price}
+              className="w-full rounded-md border border-stone-200 px-3 py-2 text-sm text-stone-900 focus:border-amber-500 focus:outline-none" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5" htmlFor="compareAtPrice">Compare At Price</label>
+            <input id="compareAtPrice" name="compareAtPrice" type="number" min="0" step="0.01" defaultValue={product.compareAtPrice || ""}
+              className="w-full rounded-md border border-stone-200 px-3 py-2 text-sm text-stone-900 focus:border-amber-500 focus:outline-none" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5" htmlFor="stock">Stock *</label>
+            <input id="stock" name="stock" type="number" required min="0" defaultValue={product.stock}
+              className="w-full rounded-md border border-stone-200 px-3 py-2 text-sm text-stone-900 focus:border-amber-500 focus:outline-none" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5" htmlFor="volumeMl">Volume (ml) *</label>
+            <input id="volumeMl" name="volumeMl" type="number" required min="1" defaultValue={product.volumeMl}
+              className="w-full rounded-md border border-stone-200 px-3 py-2 text-sm text-stone-900 focus:border-amber-500 focus:outline-none" />
+          </div>
+        </div>
+      </section>
+
+      {/* Categorization */}
+      <section className="bg-white border border-stone-100 rounded-xl shadow-sm p-6 space-y-4">
+        <h2 className="font-serif text-lg font-medium text-stone-900 border-b border-stone-100 pb-3">Categorization</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5" htmlFor="categoryId">Category *</label>
+            <select id="categoryId" name="categoryId" required defaultValue={product.categoryId}
+              className="w-full rounded-md border border-stone-200 px-3 py-2 text-sm text-stone-900 focus:border-amber-500 focus:outline-none">
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5" htmlFor="gender">Gender *</label>
+            <select id="gender" name="gender" required defaultValue={product.gender}
+              className="w-full rounded-md border border-stone-200 px-3 py-2 text-sm text-stone-900 focus:border-amber-500 focus:outline-none">
+              <option value="UNISEX">Unisex</option>
+              <option value="MALE">Men</option>
+              <option value="FEMALE">Women</option>
+            </select>
+          </div>
+        </div>
+        <div className="flex items-center gap-6">
+          <label className="flex items-center gap-2 text-sm text-stone-700 cursor-pointer">
+            <input type="checkbox" name="isPublished" defaultChecked={product.isPublished}
+              className="h-4 w-4 rounded border-stone-300 text-amber-600 focus:ring-amber-500" />
+            Published (visible on storefront)
+          </label>
+          <label className="flex items-center gap-2 text-sm text-stone-700 cursor-pointer">
+            <input type="checkbox" name="isFeatured" defaultChecked={product.isFeatured}
+              className="h-4 w-4 rounded border-stone-300 text-amber-600 focus:ring-amber-500" />
+            Featured on homepage
+          </label>
+        </div>
+      </section>
+
+      {/* Fragrance Notes */}
+      <section className="bg-white border border-stone-100 rounded-xl shadow-sm p-6 space-y-4">
+        <h2 className="font-serif text-lg font-medium text-stone-900 border-b border-stone-100 pb-3">Fragrance Notes</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5" htmlFor="notesTop">Top Notes *</label>
+            <input id="notesTop" name="notesTop" type="text" required defaultValue={product.fragranceNotes.top}
+              className="w-full rounded-md border border-stone-200 px-3 py-2 text-sm text-stone-900 focus:border-amber-500 focus:outline-none" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5" htmlFor="notesMiddle">Middle Notes *</label>
+            <input id="notesMiddle" name="notesMiddle" type="text" required defaultValue={product.fragranceNotes.middle}
+              className="w-full rounded-md border border-stone-200 px-3 py-2 text-sm text-stone-900 focus:border-amber-500 focus:outline-none" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5" htmlFor="notesBase">Base Notes *</label>
+            <input id="notesBase" name="notesBase" type="text" required defaultValue={product.fragranceNotes.base}
+              className="w-full rounded-md border border-stone-200 px-3 py-2 text-sm text-stone-900 focus:border-amber-500 focus:outline-none" />
+          </div>
+        </div>
+      </section>
+
+      {/* Action Buttons */}
+      <div className="flex items-center justify-between">
+        <Link href="/admin/products" className="inline-flex items-center gap-2 text-sm text-stone-500 hover:text-stone-800 transition-colors">
+          <ArrowLeft className="h-4 w-4" /> Back to Products
+        </Link>
+        <button type="submit" disabled={isPending}
+          className="inline-flex items-center gap-2 rounded-md bg-stone-900 px-6 py-2.5 text-sm font-semibold text-white hover:bg-stone-800 transition-colors disabled:opacity-60">
+          {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+          {isPending ? "Saving..." : "Save Changes"}
+        </button>
+      </div>
+    </form>
+  );
+}
