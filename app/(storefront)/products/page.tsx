@@ -163,7 +163,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {products.map((product) => {
                 const primaryImage = product.images.find((img) => img.isPrimary) || product.images[0];
                 return (
@@ -175,19 +175,19 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                           alt={primaryImage.altText || product.name}
                           fill
                           className="object-cover group-hover:scale-105 transition-transform duration-500"
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 33vw"
                         />
                       ) : (
-                        <div className="flex h-full w-full items-center justify-center text-stone-400">No Image</div>
+                        <div className="flex h-full w-full items-center justify-center text-stone-400 text-xs sm:text-base">No Image</div>
                       )}
                       {product.compareAtPrice && (
-                        <span className="absolute top-3 left-3 bg-amber-600 text-white text-xs font-semibold px-2.5 py-1 rounded-md uppercase tracking-wider">
+                        <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-amber-600 text-white text-[10px] sm:text-xs font-semibold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md uppercase tracking-wider">
                           Sale
                         </span>
                       )}
                     </div>
 
-                    <div className="flex flex-1 flex-col p-5">
+                    <div className="flex flex-1 flex-col p-3 sm:p-5">
                       <span className="text-xs text-stone-400 uppercase tracking-widest mb-1.5">
                         {product.brand || "Fragrance Whisper"}
                       </span>

@@ -34,7 +34,14 @@ export default function LoginForm() {
         if (res?.error) {
           setError("Invalid email or password. Please try again.");
         } else {
-          router.push(next);
+          // Fetch session to check role for admin redirect
+          const sessionRes = await fetch("/api/auth/session");
+          const session = await sessionRes.json();
+          if (session?.user?.role === "ADMIN") {
+            router.push("/admin");
+          } else {
+            router.push(next);
+          }
           router.refresh();
         }
       } catch (err) {

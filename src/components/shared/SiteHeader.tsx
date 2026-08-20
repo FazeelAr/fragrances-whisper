@@ -45,36 +45,6 @@ export default async function SiteHeader() {
 
           {/* Actions */}
           <div className="flex flex-1 items-center justify-end gap-x-4">
-            {/* Admin Badge */}
-            {isAdmin && (
-              <Link
-                href="/admin"
-                className="flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-100 transition-colors"
-              >
-                <ShieldAlert className="h-3 w-3" />
-                Admin Panel
-              </Link>
-            )}
-
-            {/* Profile / Login */}
-            {session ? (
-              <Link
-                href="/account"
-                className="group -m-2 flex items-center p-2 text-neutral-700 hover:text-amber-600 transition-colors"
-                title={`Logged in as ${session.user.name}`}
-              >
-                <User className="h-6 w-6" />
-                <span className="sr-only">Account</span>
-              </Link>
-            ) : (
-              <Link
-                href="/login"
-                className="text-sm font-medium text-neutral-700 hover:text-amber-600 transition-colors"
-              >
-                Sign in
-              </Link>
-            )}
-
             {/* Dynamic Cart Icon with badge */}
             <CartIcon />
           </div>

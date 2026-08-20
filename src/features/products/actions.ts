@@ -5,6 +5,7 @@ import { db } from "@/src/lib/db";
 import { requireAdmin } from "@/src/features/auth/guards";
 import { productSchema, updateProductSchema, type ProductInput, type UpdateProductInput } from "./schema";
 import { Prisma } from "@prisma/client";
+import { uploadProductImage } from "@/src/lib/cloudinary";
 
 function slugify(text: string): string {
   return text
@@ -56,10 +57,37 @@ export async function createProduct(data: ProductInput) {
       },
     });
 
+    if (parsed.data.images && parsed.data.images.length > 0) {
+      await Promise.all(
+        parsed.data.images.map(async (base64, index) => {
+          try {
+            const { url } = await uploadProductImage(base64, slug);
+            await db.productImage.create({
+              data: {
+                productId: product.id,
+                url,
+                isPrimary: index === 0,
+                position: index,
+              },
+            });
+          } catch (err) {
+            console.error("Failed to upload image during product creation", err);
+          }
+        })
+      );
+    }
+
     revalidatePath("/admin/products");
     revalidatePath("/products");
     revalidatePath("/");
-    return { success: true, data: product };
+    return {
+      success: true,
+      data: {
+        ...product,
+        price: product.price.toString(),
+        compareAtPrice: product.compareAtPrice?.toString() ?? null,
+      },
+    };
   } catch (e: any) {
     if (e.message?.includes("Unauthorized")) return { success: false, error: e.message };
     console.error("createProduct error:", e);
@@ -94,7 +122,14 @@ export async function updateProduct(id: string, data: UpdateProductInput) {
     revalidatePath(`/products/${product.slug}`);
     revalidatePath("/products");
     revalidatePath("/");
-    return { success: true, data: product };
+    return {
+      success: true,
+      data: {
+        ...product,
+        price: product.price.toString(),
+        compareAtPrice: product.compareAtPrice?.toString() ?? null,
+      },
+    };
   } catch (e: any) {
     if (e.message?.includes("Unauthorized")) return { success: false, error: e.message };
     console.error("updateProduct error:", e);
@@ -114,7 +149,14 @@ export async function updateProductPrice(id: string, price: number) {
 
     revalidatePath("/admin/products");
     revalidatePath(`/products/${product.slug}`);
-    return { success: true, data: product };
+    return {
+      success: true,
+      data: {
+        ...product,
+        price: product.price.toString(),
+        compareAtPrice: product.compareAtPrice?.toString() ?? null,
+      },
+    };
   } catch (e: any) {
     if (e.message?.includes("Unauthorized")) return { success: false, error: e.message };
     console.error("updateProductPrice error:", e);
@@ -137,7 +179,14 @@ export async function togglePublishProduct(id: string) {
     revalidatePath(`/products/${product.slug}`);
     revalidatePath("/products");
     revalidatePath("/");
-    return { success: true, data: updated };
+    return {
+      success: true,
+      data: {
+        ...updated,
+        price: updated.price.toString(),
+        compareAtPrice: updated.compareAtPrice?.toString() ?? null,
+      },
+    };
   } catch (e: any) {
     if (e.message?.includes("Unauthorized")) return { success: false, error: e.message };
     console.error("togglePublishProduct error:", e);

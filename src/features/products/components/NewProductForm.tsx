@@ -4,8 +4,9 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createProduct } from "@/src/features/products/actions";
 import { slugify } from "@/src/lib/utils";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Trash2 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface Category {
   id: string;
@@ -19,9 +20,32 @@ export default function NewProductForm({ categories }: { categories: Category[] 
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
 
+  const [images, setImages] = useState<string[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+
   const handleNameChange = (val: string) => {
     setName(val);
     setSlug(slugify(val));
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setImages((prev) => [...prev, base64String]);
+        setImagePreviews((prev) => [...prev, base64String]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -49,6 +73,7 @@ export default function NewProductForm({ categories }: { categories: Category[] 
       isPublished: fd.get("isPublished") === "on",
       isFeatured: fd.get("isFeatured") === "on",
       categoryId: fd.get("categoryId") as string,
+      images, // Pass the base64 images
     };
 
     startTransition(async () => {
@@ -69,6 +94,50 @@ export default function NewProductForm({ categories }: { categories: Category[] 
           {error}
         </div>
       )}
+
+      {/* Images */}
+      <section className="bg-white border border-stone-100 rounded-xl shadow-sm p-6 space-y-4">
+        <h2 className="font-serif text-lg font-medium text-stone-900 border-b border-stone-100 pb-3">Product Images</h2>
+        
+        <div className="space-y-4">
+          <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5" htmlFor="images">
+            Upload Images
+          </label>
+          <input
+            id="images"
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleImageChange}
+            className="w-full text-sm text-stone-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100"
+          />
+        </div>
+
+        {imagePreviews.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
+            {imagePreviews.map((preview, index) => (
+              <div key={index} className="relative group rounded-lg overflow-hidden border-2 border-stone-200">
+                <div className="relative aspect-square w-full bg-stone-50">
+                  <Image src={preview} alt={`Preview ${index}`} fill className="object-cover" sizes="150px" />
+                </div>
+                <div className="absolute inset-0 bg-stone-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => removeImage(index)}
+                    className="p-1.5 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
+                    title="Remove image"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+                {index === 0 && (
+                  <div className="absolute top-1 left-1 bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">Primary</div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* Basic Info */}
       <section className="bg-white border border-stone-100 rounded-xl shadow-sm p-6 space-y-4">

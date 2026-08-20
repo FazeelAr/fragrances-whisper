@@ -7,7 +7,7 @@ import { updateProduct } from "@/src/features/products/actions";
 import { slugify } from "@/src/lib/utils";
 import { Loader2, ArrowLeft, Trash2, Star } from "lucide-react";
 import Link from "next/link";
-import { deleteProductImageAction, setPrimaryImage } from "@/src/features/products/image-actions";
+import { deleteProductImageAction, setPrimaryImage, addProductImage } from "@/src/features/products/image-actions";
 
 interface Category {
   id: string;
@@ -45,6 +45,7 @@ export default function EditProductForm({ product, categories }: { product: Prod
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [name, setName] = useState(product.name);
@@ -112,6 +113,32 @@ export default function EditProductForm({ product, categories }: { product: Prod
     }
   };
 
+  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setIsUploading(true);
+    setError(null);
+
+    for (const file of files) {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64String = reader.result as string;
+        const result = await addProductImage(product.id, base64String, file.name, images.length === 0);
+        if (result.success && result.data) {
+          setImages((prev) => [...prev, result.data as ProductImage]);
+        } else {
+          setError(result.error || "Failed to upload image.");
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+    
+    // Reset input
+    e.target.value = "";
+    setIsUploading(false);
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       {error && (
@@ -157,6 +184,45 @@ export default function EditProductForm({ product, categories }: { product: Prod
                 )}
               </div>
             ))}
+          </div>
+          
+          <div className="pt-4 border-t border-stone-100">
+            <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-2">
+              Add More Images
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleUploadImage}
+                disabled={isUploading}
+                className="text-sm text-stone-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 disabled:opacity-50"
+              />
+              {isUploading && <Loader2 className="h-4 w-4 animate-spin text-stone-400" />}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {images.length === 0 && (
+        <section className="bg-white border border-stone-100 rounded-xl shadow-sm p-6 space-y-4">
+          <h2 className="font-serif text-lg font-medium text-stone-900 border-b border-stone-100 pb-3">Product Images</h2>
+          <div className="py-4">
+            <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-2">
+              Upload Images
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleUploadImage}
+                disabled={isUploading}
+                className="w-full text-sm text-stone-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 disabled:opacity-50"
+              />
+              {isUploading && <Loader2 className="h-4 w-4 animate-spin text-stone-400" />}
+            </div>
           </div>
         </section>
       )}

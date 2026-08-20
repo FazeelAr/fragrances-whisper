@@ -24,6 +24,7 @@ export const productSchema = z.object({
   isPublished: z.boolean().default(false),
   isFeatured: z.boolean().default(false),
   categoryId: z.string().min(1, "Category is required"),
+  images: z.array(z.string()).optional(),
 });
 
 export const updateProductSchema = productSchema.partial().extend({

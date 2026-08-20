@@ -123,7 +123,7 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
             <Sparkles className="h-5 w-5 text-amber-500" />
             <h2 className="text-2xl font-serif text-stone-900">You May Also Like</h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
             {relatedProducts.map((p) => {
               const pImg = p.images.find((img) => img.isPrimary) || p.images[0];
               return (
@@ -135,13 +135,13 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
                         alt={pImg.altText || p.name}
                         fill
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 25vw"
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-stone-400">No Image</div>
+                      <div className="flex h-full w-full items-center justify-center text-stone-400 text-xs sm:text-base">No Image</div>
                     )}
                   </div>
-                  <div className="flex flex-1 flex-col p-5">
+                  <div className="flex flex-1 flex-col p-3 sm:p-5">
                     <span className="text-xs text-stone-400 uppercase tracking-widest mb-1.5">
                       {p.brand || "Fragrance Whisper"}
                     </span>
