@@ -103,7 +103,7 @@ export async function updateProduct(id: string, data: UpdateProductInput) {
       return { success: false, error: parsed.error.issues[0].message };
     }
 
-    const { price, compareAtPrice, ...rest } = parsed.data;
+    const { price, compareAtPrice, images, ...rest } = parsed.data;
 
     const updateData: Prisma.ProductUpdateInput = {
       ...rest,

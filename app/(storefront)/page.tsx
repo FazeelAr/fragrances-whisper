@@ -1,17 +1,49 @@
 import Link from "next/link";
 import Image from "next/image";
-import { getCategories } from "@/src/features/categories/queries";
-import { getFeaturedProducts } from "@/src/features/products/queries";
-import Price from "@/src/components/shared/Price";
+import { db } from "@/src/lib/db";
+import ProductTabs from "@/src/features/products/components/ProductTabs";
 import { Sparkles, ArrowRight } from "lucide-react";
 
 export const revalidate = 3600; // Cache homepage for 1 hour
 
 export default async function Homepage() {
-  const [categories, featuredProducts] = await Promise.all([
-    getCategories(),
-    getFeaturedProducts(8),
+  const [categoriesData, featuredProductsData] = await Promise.all([
+    db.category.findMany({
+      orderBy: { name: "asc" },
+      include: {
+        _count: { select: { products: true } },
+        products: {
+          where: { isPublished: true },
+          include: { images: true },
+          orderBy: { createdAt: "desc" },
+          take: 8,
+        },
+      },
+    }),
+    db.product.findMany({
+      where: { isPublished: true },
+      include: { images: true },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+    }),
   ]);
+
+  const serializeProduct = (product: any) => ({
+    ...product,
+    price: product.price.toString(),
+    compareAtPrice: product.compareAtPrice?.toString() ?? null,
+  });
+
+  const categories = categoriesData.map(cat => ({
+    id: cat.id,
+    name: cat.name,
+    slug: cat.slug,
+    imageUrl: cat.imageUrl,
+    _count: cat._count,
+    products: cat.products.map(serializeProduct),
+  }));
+
+  const allProducts = featuredProductsData.map(serializeProduct);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -104,56 +136,7 @@ export default async function Homepage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
-            {featuredProducts.map((product) => {
-              const primaryImage = product.images.find((img) => img.isPrimary) || product.images[0];
-              return (
-                <div key={product.id} className="group relative flex flex-col bg-white rounded-lg border border-stone-100 overflow-hidden hover:shadow-lg transition-all">
-                  <div className="relative aspect-square w-full bg-stone-100 overflow-hidden">
-                    {primaryImage ? (
-                      <Image
-                        src={primaryImage.url}
-                        alt={primaryImage.altText || product.name}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-500"
-                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 25vw"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-stone-400 text-xs sm:text-base">No Image</div>
-                    )}
-                    {product.compareAtPrice && (
-                      <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-amber-600 text-white text-[10px] sm:text-xs font-semibold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md uppercase tracking-wider">
-                        Sale
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex flex-1 flex-col p-3 sm:p-5">
-                    <span className="text-xs text-stone-400 uppercase tracking-widest mb-1.5">
-                      {product.brand || "Fragrance Whisper"}
-                    </span>
-                    <h3 className="text-base font-serif text-stone-950 mb-2">
-                      <Link href={`/products/${product.slug}`} className="hover:text-amber-700 transition-colors">
-                        <span aria-hidden="true" className="absolute inset-0" />
-                        {product.name}
-                      </Link>
-                    </h3>
-                    <p className="text-xs text-stone-500 font-sans line-clamp-1 mb-4">
-                      Notes: {typeof product.fragranceNotes === 'object' && product.fragranceNotes !== null
-                        ? Object.values(product.fragranceNotes).join(" · ")
-                        : "Exquisite scent profile"}
-                    </p>
-                    <div className="mt-auto flex items-center justify-between">
-                      <Price amount={product.price.toString()} compareAtPrice={product.compareAtPrice?.toString()} size="sm" />
-                      <span className="text-xs text-stone-400 font-medium">
-                        {product.volumeMl}ml
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <ProductTabs allProducts={allProducts} categories={categories} />
         </div>
       </section>
 

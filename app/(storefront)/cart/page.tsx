@@ -95,18 +95,11 @@ export default async function CartPage() {
               </div>
 
               <Link
-                href={session ? "/checkout" : "/login?next=/checkout"}
+                href="/checkout"
                 className="block w-full text-center rounded-md bg-stone-900 px-6 py-3 text-sm font-semibold text-white hover:bg-stone-800 transition-colors shadow-md"
               >
                 Proceed to Checkout
               </Link>
-
-              {!session && (
-                <p className="text-xs text-center text-stone-400">
-                  <Link href="/login" className="text-amber-700 hover:underline font-medium">Sign in</Link>
-                  {" "}to save your cart and track your orders
-                </p>
-              )}
 
               <Link
                 href="/products"

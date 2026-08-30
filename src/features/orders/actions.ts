@@ -106,8 +106,8 @@ export async function placeOrder(data: CheckoutInput) {
         },
       });
 
-      // If COD, decrement stock immediately
-      if (parsed.data.paymentMethod === "COD") {
+      // If COD or WHATSAPP, decrement stock immediately
+      if (parsed.data.paymentMethod === "COD" || parsed.data.paymentMethod === "WHATSAPP") {
         for (const item of orderItemsData) {
           await tx.product.update({
             where: { id: item.productId },
@@ -128,7 +128,7 @@ export async function placeOrder(data: CheckoutInput) {
     // 4. Handle Redirections
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
-    if (parsed.data.paymentMethod === "COD") {
+    if (parsed.data.paymentMethod === "COD" || parsed.data.paymentMethod === "WHATSAPP") {
       return {
         success: true,
         redirectUrl: `/checkout/success?orderNumber=${order.orderNumber}`,

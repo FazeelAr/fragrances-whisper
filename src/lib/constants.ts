@@ -45,3 +45,11 @@ export const GENDER_LABELS = {
   FEMALE: "Women",
   UNISEX: "Unisex",
 } as const;
+
+// WhatsApp & Bank Transfer Payment Configuration
+export const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "923001234567";
+export const BANK_NAME = process.env.NEXT_PUBLIC_BANK_NAME || "Meezan Bank";
+export const BANK_ACCOUNT_TITLE = process.env.NEXT_PUBLIC_BANK_ACCOUNT_TITLE || "Fragrance Whisper";
+export const BANK_ACCOUNT_NUMBER = process.env.NEXT_PUBLIC_BANK_ACCOUNT_NUMBER || "1234567890123";
+export const BANK_IBAN = process.env.NEXT_PUBLIC_BANK_IBAN || "PK00MEZN1234567890123";
+

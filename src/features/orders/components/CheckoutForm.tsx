@@ -23,7 +23,7 @@ export default function CheckoutForm({ initialUser, totals }: CheckoutFormProps)
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"PAYFAST" | "COD">("PAYFAST");
+  const [paymentMethod, setPaymentMethod] = useState<"PAYFAST" | "COD" | "WHATSAPP">("WHATSAPP");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -146,44 +146,18 @@ export default function CheckoutForm({ initialUser, totals }: CheckoutFormProps)
             Payment Method
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* PayFast Button Option */}
-            <button
-              type="button"
-              onClick={() => setPaymentMethod("PAYFAST")}
-              className={`flex items-center gap-4 rounded-lg border-2 p-4 text-left transition-all ${
-                paymentMethod === "PAYFAST"
-                  ? "border-amber-600 bg-amber-50/20 ring-1 ring-amber-600"
-                  : "border-stone-200 hover:border-stone-300"
-              }`}
-            >
-              <div className="h-10 w-10 flex items-center justify-center rounded-md bg-stone-100 text-stone-700 flex-shrink-0">
+          <div className="rounded-lg border border-amber-200 bg-amber-50/20 p-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="h-10 w-10 flex items-center justify-center rounded-md bg-amber-100 text-amber-800 flex-shrink-0 mt-0.5">
                 <CreditCard className="h-5 w-5" />
               </div>
-              <div>
-                <p className="text-sm font-semibold text-stone-900">PayFast Pakistan</p>
-                <p className="text-xs text-stone-500">Cards, Wallets, Bank Transfers</p>
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-stone-900">Bank Transfer (WhatsApp Verification)</p>
+                <p className="text-xs text-stone-600 leading-relaxed font-sans">
+                  Transfer the order amount to our bank account. On the next page, you will get our bank details and a direct link to send the payment screenshot & order details on WhatsApp to confirm your order.
+                </p>
               </div>
-            </button>
-
-            {/* COD Button Option */}
-            <button
-              type="button"
-              onClick={() => setPaymentMethod("COD")}
-              className={`flex items-center gap-4 rounded-lg border-2 p-4 text-left transition-all ${
-                paymentMethod === "COD"
-                  ? "border-amber-600 bg-amber-50/20 ring-1 ring-amber-600"
-                  : "border-stone-200 hover:border-stone-300"
-              }`}
-            >
-              <div className="h-10 w-10 flex items-center justify-center rounded-md bg-stone-100 text-stone-700 flex-shrink-0">
-                <Truck className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-stone-900">Cash on Delivery</p>
-                <p className="text-xs text-stone-500">Pay cash upon delivery</p>
-              </div>
-            </button>
+            </div>
           </div>
         </div>
       </div>
@@ -222,9 +196,7 @@ export default function CheckoutForm({ initialUser, totals }: CheckoutFormProps)
             {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
             {isPending
               ? "Placing Order..."
-              : paymentMethod === "COD"
-              ? "Confirm Cash on Delivery"
-              : "Proceed to Payment"}
+              : "Place Order & Pay via WhatsApp"}
           </button>
         </div>
       </div>
