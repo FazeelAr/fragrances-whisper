@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { placeOrder } from "@/src/features/orders/actions";
 import { formatPrice } from "@/src/lib/utils";
-import { Loader2, CreditCard, Truck } from "lucide-react";
+import { Loader2, CreditCard, Truck, Building2, Smartphone } from "lucide-react";
 
 interface CheckoutFormProps {
   initialUser?: {
@@ -146,16 +146,40 @@ export default function CheckoutForm({ initialUser, totals }: CheckoutFormProps)
             Payment Method
           </h2>
 
-          <div className="rounded-lg border border-amber-200 bg-amber-50/20 p-4 space-y-3">
+          <div className="rounded-xl border border-amber-200 bg-amber-50/20 p-5 space-y-4">
             <div className="flex items-start gap-3">
-              <div className="h-10 w-10 flex items-center justify-center rounded-md bg-amber-100 text-amber-800 flex-shrink-0 mt-0.5">
+              <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-amber-100 text-amber-800 flex-shrink-0 mt-0.5">
                 <CreditCard className="h-5 w-5" />
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-semibold text-stone-900">Bank Transfer (WhatsApp Verification)</p>
-                <p className="text-xs text-stone-600 leading-relaxed font-sans">
-                  Transfer the order amount to our bank account. On the next page, you will get our bank details and a direct link to send the payment screenshot & order details on WhatsApp to confirm your order.
+                <p className="text-sm font-semibold text-stone-900">
+                  Bank Transfer & Mobile Wallet (WhatsApp Verification)
                 </p>
+                <p className="text-xs text-stone-600 leading-relaxed font-sans">
+                  We accept direct transfers to <strong>Allied Bank</strong> and <strong>Easypaisa</strong>. After placing your order, you will receive complete account details and a 1-click WhatsApp link to submit your transfer receipt.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-amber-200/50">
+              <div className="flex items-center gap-2.5 rounded-lg bg-white p-3 border border-stone-200/70 shadow-xs">
+                <div className="h-8 w-8 rounded-md bg-blue-50 text-blue-700 flex items-center justify-center flex-shrink-0">
+                  <Building2 className="h-4 w-4" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-stone-900 block">Allied Bank (ABL)</span>
+                  <span className="text-[11px] text-stone-500 font-mono">PK86ABPA...030012</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 rounded-lg bg-white p-3 border border-stone-200/70 shadow-xs">
+                <div className="h-8 w-8 rounded-md bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0">
+                  <Smartphone className="h-4 w-4" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-stone-900 block">Easypaisa</span>
+                  <span className="text-[11px] text-stone-500 font-mono">0314 9448877</span>
+                </div>
               </div>
             </div>
           </div>
@@ -196,7 +220,7 @@ export default function CheckoutForm({ initialUser, totals }: CheckoutFormProps)
             {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
             {isPending
               ? "Placing Order..."
-              : "Place Order & Pay via WhatsApp"}
+              : "Place Order & Pay (Bank / Easypaisa)"}
           </button>
         </div>
       </div>

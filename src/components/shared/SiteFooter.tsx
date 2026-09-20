@@ -50,6 +50,16 @@ export default async function SiteFooter() {
                 <span className="block">Delivery within 3-5 business days</span>
               </li>
               <li>
+                <a
+                  href="https://wa.me/923149448877"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-emerald-400 transition-colors"
+                >
+                  WhatsApp: 0314 9448877
+                </a>
+              </li>
+              <li>
                 <span className="block">Support: support@fragrancewhisper.com</span>
               </li>
             </ul>

@@ -5,6 +5,7 @@ import { User, ShieldAlert, Sparkles } from "lucide-react";
 import { STORE_NAME } from "@/src/lib/constants";
 import MobileNav from "./MobileNav";
 import CartIcon from "./CartIcon";
+import AnnouncementBar from "./AnnouncementBar";
 
 export default async function SiteHeader() {
   const session = await auth();
@@ -12,8 +13,13 @@ export default async function SiteHeader() {
   const isAdmin = session?.user?.role === "ADMIN";
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-neutral-100 bg-white/80 backdrop-blur-md">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-40 w-full">
+      {/* Moving Taglines Line Above Navbar */}
+      <AnnouncementBar />
+
+      {/* Main Navbar */}
+      <div className="border-b border-neutral-100 bg-white/80 backdrop-blur-md">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Logo & Mobile Nav */}
           <div className="flex lg:flex-1 items-center gap-2">
@@ -50,6 +56,7 @@ export default async function SiteHeader() {
           </div>
         </div>
       </div>
-    </header>
+    </div>
+  </header>
   );
 }
