@@ -10,6 +10,12 @@
     "lint": "eslint",
     "test-integration": "ts-node --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" prisma/test-integration.ts"
   },
+  "allowScripts": {
+    "@prisma/client": true,
+    "@prisma/engines": true,
+    "prisma": true,
+    "unrs-resolver": true
+  },
   "dependencies": {
     "@hookform/resolvers": "^5.7.1",
     "@prisma/client": "^5.22.0",
