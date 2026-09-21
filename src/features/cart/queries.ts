@@ -1,63 +1,119 @@
 import { db } from "@/src/lib/db";
+import { cookies } from "next/headers";
 import { SHIPPING_FEE, FREE_SHIPPING_THRESHOLD } from "@/src/lib/constants";
 import { Prisma } from "@prisma/client";
 
+export const CART_COOKIE = "fw_cart";
+
+export interface CookieCartItem {
+  productId: string;
+  quantity: number;
+}
+
+export interface CartItemProduct {
+  id: string;
+  name: string;
+  slug: string;
+  stock: number;
+  volumeMl: number | null;
+  brand: string | null;
+  images: { url: string; altText: string | null }[];
+}
+
+export interface CartItemWithProduct {
+  id: string; // maps to productId for row actions
+  productId: string;
+  quantity: number;
+  priceAtAdd: Prisma.Decimal;
+  product: CartItemProduct;
+}
+
+export interface HydratedCart {
+  id: string;
+  items: CartItemWithProduct[];
+}
+
 /**
- * Resolves the active cart for a user or guest session.
- * Creates one if it doesn't exist.
+ * Fast synchronous cookie read - 0 database calls.
+ * Used across the application for instant rendering.
  */
-export async function getOrCreateCart(userId?: string | null, sessionToken?: string | null) {
-  if (userId) {
-    // Authenticated user — use DB cart tied to userId
-    const existing = await db.cart.findUnique({ where: { userId } });
-    if (existing) return existing;
-    return db.cart.create({ data: { userId } });
+export async function getCartCookieItems(): Promise<CookieCartItem[]> {
+  try {
+    const cookieStore = await cookies();
+    const raw = cookieStore.get(CART_COOKIE)?.value;
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (item) => item && typeof item.productId === "string" && typeof item.quantity === "number" && item.quantity > 0
+    );
+  } catch {
+    return [];
   }
+}
 
-  if (sessionToken) {
-    // Guest — use sessionToken cookie
-    const existing = await db.cart.findUnique({ where: { sessionToken } });
-    if (existing) return existing;
-    return db.cart.create({ data: { sessionToken } });
-  }
-
-  // No identity at all — should not normally happen; create anonymous cart
-  return db.cart.create({ data: {} });
+/**
+ * Returns the total item count in the cart in 0ms without any DB query.
+ * Perfect for the SiteHeader / CartIcon on every page.
+ */
+export async function getCartItemCount(): Promise<number> {
+  const items = await getCartCookieItems();
+  return items.reduce((sum, item) => sum + item.quantity, 0);
 }
 
 /**
  * Fetches the full cart with items and product details.
+ * Reads product details from DB only for the products currently in the cookie.
  */
-export async function getCartWithItems(userId?: string | null, sessionToken?: string | null) {
-  const where = userId
-    ? { userId }
-    : sessionToken
-    ? { sessionToken }
-    : null;
+export async function getCartWithItems(
+  _userId?: string | null,
+  _sessionToken?: string | null
+): Promise<HydratedCart> {
+  const cookieItems = await getCartCookieItems();
+  if (cookieItems.length === 0) {
+    return { id: "cookie-cart", items: [] };
+  }
 
-  if (!where) return null;
-
-  return db.cart.findUnique({
-    where: where as Prisma.CartWhereUniqueInput,
+  const productIds = cookieItems.map((i) => i.productId);
+  const products = await db.product.findMany({
+    where: {
+      id: { in: productIds },
+      isPublished: true,
+    },
     include: {
-      items: {
-        include: {
-          product: {
-            include: {
-              images: { where: { isPrimary: true }, take: 1 },
-            },
-          },
-        },
-        orderBy: { createdAt: "asc" },
-      },
+      images: { where: { isPrimary: true }, take: 1 },
     },
   });
+
+  const productMap = new Map(products.map((p) => [p.id, p]));
+  const items: CartItemWithProduct[] = [];
+
+  for (const cookieItem of cookieItems) {
+    const product = productMap.get(cookieItem.productId);
+    if (!product) continue;
+
+    items.push({
+      id: product.id,
+      productId: product.id,
+      quantity: Math.min(cookieItem.quantity, product.stock),
+      priceAtAdd: product.price,
+      product: {
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        stock: product.stock,
+        volumeMl: product.volumeMl,
+        brand: product.brand,
+        images: product.images,
+      },
+    });
+  }
+
+  return { id: "cookie-cart", items };
 }
 
 /**
  * Compute cart totals.
- * Uses `priceAtAdd` (snapshot price) for subtotal — stable even if admin changes price later.
- * Re-validates at checkout.
  */
 export function getCartTotals(items: { priceAtAdd: Prisma.Decimal; quantity: number }[]) {
   const subtotal = items.reduce(
@@ -71,40 +127,11 @@ export function getCartTotals(items: { priceAtAdd: Prisma.Decimal; quantity: num
 }
 
 /**
- * Merge a guest cart into a user cart on login.
- * Moves all items from sessionToken cart into userId cart, merging quantities.
+ * Compatibility exports for any cached client chunks
  */
-export async function mergeGuestCartIntoUserCart(userId: string, sessionToken: string) {
-  const guestCart = await db.cart.findUnique({
-    where: { sessionToken },
-    include: { items: true },
-  });
-
-  if (!guestCart || guestCart.items.length === 0) return;
-
-  const userCart = await getOrCreateCart(userId);
-
-  for (const item of guestCart.items) {
-    const existing = await db.cartItem.findFirst({
-      where: { cartId: userCart.id, productId: item.productId },
-    });
-    if (existing) {
-      await db.cartItem.update({
-        where: { id: existing.id },
-        data: { quantity: existing.quantity + item.quantity },
-      });
-    } else {
-      await db.cartItem.create({
-        data: {
-          cartId: userCart.id,
-          productId: item.productId,
-          quantity: item.quantity,
-          priceAtAdd: item.priceAtAdd,
-        },
-      });
-    }
-  }
-
-  // Delete the guest cart after merging
-  await db.cart.delete({ where: { id: guestCart.id } });
+export async function getOrCreateCart(_userId?: string | null, _sessionToken?: string | null) {
+  return { id: "cookie-cart" };
 }
+
+export async function mergeGuestCartIntoUserCart() {}
+

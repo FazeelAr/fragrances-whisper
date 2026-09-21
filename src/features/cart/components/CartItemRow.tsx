@@ -16,7 +16,7 @@ interface CartItemRowProps {
       name: string;
       slug: string;
       stock: number;
-      volumeMl: number;
+      volumeMl: number | null;
       brand: string | null;
       images: { url: string; altText: string | null }[];
     };

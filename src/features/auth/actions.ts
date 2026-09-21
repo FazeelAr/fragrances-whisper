@@ -1,16 +1,24 @@
 "use server";
 
 import { db } from "@/src/lib/db";
-import { registerSchema, type RegisterInput } from "./schema";
+import { createUserSchema, type CreateUserInput } from "./schema";
+import { requireAdmin } from "./guards";
 import bcrypt from "bcryptjs";
 
-export async function registerCustomer(data: RegisterInput) {
-  const parsed = registerSchema.safeParse(data);
+/**
+ * Creates a new user account.
+ * SECURITY: Accessible ONLY by authenticated administrators.
+ */
+export async function createAdminUser(data: CreateUserInput) {
+  // Enforce admin permission
+  await requireAdmin();
+
+  const parsed = createUserSchema.safeParse(data);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const { email, password, name, phone } = parsed.data;
+  const { email, password, name, phone, role } = parsed.data;
 
   const existing = await db.user.findUnique({ where: { email } });
   if (existing) {
@@ -26,13 +34,19 @@ export async function registerCustomer(data: RegisterInput) {
         name,
         phone,
         passwordHash,
-        role: "CUSTOMER",
+        role: role || "ADMIN",
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
       },
     });
 
-    return { success: true, data: { id: user.id, email: user.email, name: user.name } };
+    return { success: true, data: user };
   } catch (e) {
-    console.error("registerCustomer error:", e);
-    return { success: false, error: "Failed to create account. Please try again." };
+    console.error("createAdminUser error:", e);
+    return { success: false, error: "Failed to create user. Please try again." };
   }
 }

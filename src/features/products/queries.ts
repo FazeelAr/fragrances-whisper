@@ -1,6 +1,7 @@
 import { db } from "@/src/lib/db";
 import { type ProductFilter } from "./schema";
 import { Prisma } from "@prisma/client";
+import { cache } from "react";
 
 const PAGE_SIZE = 12;
 
@@ -60,7 +61,7 @@ export async function getFeaturedProducts(limit = 8) {
   });
 }
 
-export async function getProductBySlug(slug: string) {
+export const getProductBySlug = cache(async (slug: string) => {
   return db.product.findUnique({
     where: { slug, isPublished: true },
     include: {
@@ -68,15 +69,15 @@ export async function getProductBySlug(slug: string) {
       category: { select: { id: true, name: true, slug: true } },
     },
   });
-}
+});
 
-export async function getRelatedProducts(productId: string, categoryId: string, limit = 4) {
+export const getRelatedProducts = cache(async (productId: string, categoryId: string, limit = 4) => {
   return db.product.findMany({
     where: { isPublished: true, categoryId, id: { not: productId } },
     take: limit,
     include: { images: { where: { isPrimary: true }, take: 1 } },
   });
-}
+});
 
 // Admin-only queries (no isPublished filter)
 export async function getAdminProducts(search?: string, categoryId?: string) {

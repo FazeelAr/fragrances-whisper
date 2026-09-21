@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, X, Sparkles } from "lucide-react";
+import { Menu, X, Sparkles, LogIn, LayoutDashboard } from "lucide-react";
 import { STORE_NAME } from "@/src/lib/constants";
 
 import { createPortal } from "react-dom";
@@ -15,9 +15,11 @@ interface Category {
 
 interface MobileNavProps {
   categories: Category[];
+  isLoggedIn?: boolean;
+  isAdmin?: boolean;
 }
 
-export default function MobileNav({ categories }: MobileNavProps) {
+export default function MobileNav({ categories, isLoggedIn, isAdmin }: MobileNavProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const drawerContent = (
@@ -72,6 +74,30 @@ export default function MobileNav({ categories }: MobileNavProps) {
               {category.name}
             </Link>
           ))}
+
+          <div className="h-px bg-stone-100 my-2"></div>
+
+          {isLoggedIn ? (
+            isAdmin ? (
+              <Link
+                href="/admin"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-2 text-sm font-semibold text-amber-700 hover:text-amber-800 transition-colors"
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                Admin Dashboard
+              </Link>
+            ) : null
+          ) : (
+            <Link
+              href="/login?next=/admin"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-2 text-sm font-medium text-stone-700 hover:text-amber-600 transition-colors"
+            >
+              <LogIn className="h-4 w-4" />
+              Admin Login
+            </Link>
+          )}
         </nav>
       </div>
     </div>

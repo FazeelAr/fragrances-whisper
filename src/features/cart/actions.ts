@@ -2,37 +2,29 @@
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { auth } from "@/src/lib/auth";
 import { db } from "@/src/lib/db";
-import { getOrCreateCart } from "./queries";
+import { CART_COOKIE, getCartCookieItems, type CookieCartItem } from "./queries";
 import { addToCartSchema, updateCartItemSchema } from "./schema";
-import { Prisma } from "@prisma/client";
-import { v4 as uuidv4 } from "uuid";
-
-const CART_COOKIE = "fw_cart_id";
 
 /**
- * Get or create the guest sessionToken cookie.
- * Returns the token string.
+ * Save items into the cart cookie.
  */
-async function getSessionToken(): Promise<string> {
+async function saveCartCookie(items: CookieCartItem[]) {
   const cookieStore = await cookies();
-  let token = cookieStore.get(CART_COOKIE)?.value;
-  if (!token) {
-    token = uuidv4();
-    cookieStore.set(CART_COOKIE, token, {
+  if (items.length === 0) {
+    cookieStore.delete(CART_COOKIE);
+  } else {
+    cookieStore.set(CART_COOKIE, JSON.stringify(items), {
       httpOnly: true,
       sameSite: "lax",
       path: "/",
       maxAge: 60 * 60 * 24 * 30, // 30 days
     });
   }
-  return token;
 }
 
 /**
- * Add a product to the cart.
- * Always re-validates stock and snapshots the current DB price.
+ * Add a product to the cart (stored in cookie, verified against DB stock).
  */
 export async function addToCart(productId: string, quantity: number) {
   const parsed = addToCartSchema.safeParse({ productId, quantity });
@@ -41,19 +33,16 @@ export async function addToCart(productId: string, quantity: number) {
   }
 
   try {
-    const session = await auth();
-    const userId = session?.user?.id ?? null;
-    const sessionToken = userId ? null : await getSessionToken();
-
-    // Validate product exists and has sufficient stock
+    // Fast verification that product exists and has stock
     const product = await db.product.findUnique({
       where: { id: productId, isPublished: true },
-      select: { id: true, stock: true, price: true, name: true },
+      select: { id: true, stock: true, name: true },
     });
 
     if (!product) {
       return { success: false, error: "Product not found or unavailable." };
     }
+
     if (product.stock < quantity) {
       return {
         success: false,
@@ -61,35 +50,23 @@ export async function addToCart(productId: string, quantity: number) {
       };
     }
 
-    const cart = await getOrCreateCart(userId, sessionToken);
+    const items = await getCartCookieItems();
+    const existingIndex = items.findIndex((i) => i.productId === productId);
 
-    // Check if item already in cart — if so, increment quantity
-    const existingItem = await db.cartItem.findFirst({
-      where: { cartId: cart.id, productId },
-    });
-
-    if (existingItem) {
-      const newQty = existingItem.quantity + quantity;
+    if (existingIndex > -1) {
+      const newQty = items[existingIndex].quantity + quantity;
       if (newQty > product.stock) {
         return {
           success: false,
-          error: `Only ${product.stock} unit(s) available. You already have ${existingItem.quantity} in your cart.`,
+          error: `Only ${product.stock} unit(s) available. You already have ${items[existingIndex].quantity} in your cart.`,
         };
       }
-      await db.cartItem.update({
-        where: { id: existingItem.id },
-        data: { quantity: newQty },
-      });
+      items[existingIndex].quantity = newQty;
     } else {
-      await db.cartItem.create({
-        data: {
-          cartId: cart.id,
-          productId,
-          quantity,
-          priceAtAdd: new Prisma.Decimal(product.price.toString()),
-        },
-      });
+      items.push({ productId, quantity });
     }
+
+    await saveCartCookie(items);
 
     revalidatePath("/cart");
     revalidatePath("/");
@@ -101,8 +78,7 @@ export async function addToCart(productId: string, quantity: number) {
 }
 
 /**
- * Update the quantity of a cart item.
- * If quantity = 0, removes the item.
+ * Update the quantity of a cart item in the cookie.
  */
 export async function updateCartItemQty(cartItemId: string, quantity: number) {
   const parsed = updateCartItemSchema.safeParse({ cartItemId, quantity });
@@ -111,24 +87,26 @@ export async function updateCartItemQty(cartItemId: string, quantity: number) {
   }
 
   try {
-    if (quantity === 0) {
+    if (quantity <= 0) {
       return removeFromCart(cartItemId);
     }
 
-    // Re-validate stock against current DB value
-    const item = await db.cartItem.findUnique({
+    const items = await getCartCookieItems();
+    const itemIndex = items.findIndex((i) => i.productId === cartItemId);
+    if (itemIndex === -1) {
+      return { success: false, error: "Cart item not found." };
+    }
+
+    // Verify current stock
+    const product = await db.product.findUnique({
       where: { id: cartItemId },
-      include: { product: { select: { stock: true } } },
+      select: { stock: true },
     });
 
-    if (!item) return { success: false, error: "Cart item not found." };
+    const maxStock = product?.stock ?? quantity;
+    items[itemIndex].quantity = Math.min(quantity, maxStock);
 
-    const clampedQty = Math.min(quantity, item.product.stock);
-
-    await db.cartItem.update({
-      where: { id: cartItemId },
-      data: { quantity: clampedQty },
-    });
+    await saveCartCookie(items);
 
     revalidatePath("/cart");
     return { success: true };
@@ -139,11 +117,14 @@ export async function updateCartItemQty(cartItemId: string, quantity: number) {
 }
 
 /**
- * Remove a single item from the cart.
+ * Remove a single item from the cart cookie.
  */
 export async function removeFromCart(cartItemId: string) {
   try {
-    await db.cartItem.delete({ where: { id: cartItemId } });
+    const items = await getCartCookieItems();
+    const filtered = items.filter((i) => i.productId !== cartItemId);
+    await saveCartCookie(filtered);
+
     revalidatePath("/cart");
     return { success: true };
   } catch (e) {
@@ -153,11 +134,11 @@ export async function removeFromCart(cartItemId: string) {
 }
 
 /**
- * Clear all items from a cart.
+ * Clear all items from the cart cookie.
  */
-export async function clearCart(cartId: string) {
+export async function clearCart() {
   try {
-    await db.cartItem.deleteMany({ where: { cartId } });
+    await saveCartCookie([]);
     revalidatePath("/cart");
     return { success: true };
   } catch (e) {

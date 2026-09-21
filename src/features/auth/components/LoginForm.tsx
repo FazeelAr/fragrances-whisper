@@ -3,14 +3,13 @@
 import { useState, useTransition } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, ShieldCheck } from "lucide-react";
 import { STORE_NAME } from "@/src/lib/constants";
 
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/";
+  const next = searchParams.get("next") || "/admin";
 
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -32,21 +31,14 @@ export default function LoginForm() {
         });
 
         if (res?.error) {
-          setError("Invalid email or password. Please try again.");
+          setError("Invalid administrator credentials or unauthorized account.");
         } else {
-          // Fetch session to check role for admin redirect
-          const sessionRes = await fetch("/api/auth/session");
-          const session = await sessionRes.json();
-          if (session?.user?.role === "ADMIN") {
-            router.push("/admin");
-          } else {
-            router.push(next);
-          }
+          router.push(next.startsWith("/admin") ? next : "/admin");
           router.refresh();
         }
       } catch (err) {
         console.error("Sign-in error:", err);
-        setError("Something went wrong. Please try again later.");
+        setError("An unexpected error occurred. Please try again.");
       }
     });
   };
@@ -54,48 +46,48 @@ export default function LoginForm() {
   return (
     <div className="w-full max-w-md space-y-8 bg-white p-8 border border-stone-100 rounded-xl shadow-sm">
       <div className="text-center">
-        <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-600 mb-4">
-          <Sparkles className="h-6 w-6" />
+        <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-700 mb-4 border border-amber-200/50">
+          <ShieldCheck className="h-6 w-6" />
         </div>
-        <h2 className="text-3xl font-serif text-stone-900 tracking-tight">Sign in to your account</h2>
-        <p className="mt-2 text-sm text-stone-500 font-sans">
-          Welcome back to {STORE_NAME}
+        <h2 className="text-2xl font-serif font-bold text-stone-900 tracking-tight">Admin Portal</h2>
+        <p className="mt-1.5 text-xs text-stone-500 font-sans">
+          Restricted access for {STORE_NAME} administrators
         </p>
       </div>
 
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-xs text-red-700 font-medium">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5" htmlFor="email">
-            Email Address
+          <label className="block text-xs font-semibold text-stone-600 uppercase tracking-wider mb-1.5" htmlFor="email">
+            Admin Email
           </label>
           <input
             id="email"
             name="email"
             type="email"
             required
-            className="w-full rounded-md border border-stone-200 px-3 py-2 text-sm text-stone-900 placeholder-stone-400 focus:border-amber-500 focus:outline-none"
-            placeholder="name@example.com"
+            autoComplete="email"
+            className="w-full rounded-md border border-stone-200 px-3 py-2 text-sm text-stone-900 placeholder-stone-400 focus:border-amber-600 focus:outline-none"
+            placeholder="admin@fragrancewhisper.com"
           />
         </div>
 
         <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider" htmlFor="password">
-              Password
-            </label>
-          </div>
+          <label className="block text-xs font-semibold text-stone-600 uppercase tracking-wider mb-1.5" htmlFor="password">
+            Password
+          </label>
           <input
             id="password"
             name="password"
             type="password"
             required
-            className="w-full rounded-md border border-stone-200 px-3 py-2 text-sm text-stone-900 placeholder-stone-400 focus:border-amber-500 focus:outline-none"
+            autoComplete="current-password"
+            className="w-full rounded-md border border-stone-200 px-3 py-2 text-sm text-stone-900 placeholder-stone-400 focus:border-amber-600 focus:outline-none"
             placeholder="••••••••"
           />
         </div>
@@ -103,18 +95,17 @@ export default function LoginForm() {
         <button
           type="submit"
           disabled={isPending}
-          className="w-full flex items-center justify-center gap-2 rounded-md bg-stone-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-stone-800 transition-colors disabled:opacity-60"
+          className="w-full flex items-center justify-center gap-2 rounded-md bg-stone-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-stone-800 transition-colors disabled:opacity-60 cursor-pointer"
         >
           {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-          {isPending ? "Signing in..." : "Sign In"}
+          {isPending ? "Authenticating..." : "Sign In to Admin Panel"}
         </button>
       </form>
 
-      <div className="text-center text-sm text-stone-500">
-        Don&apos;t have an account?{" "}
-        <Link href={`/register?next=${encodeURIComponent(next)}`} className="text-amber-700 hover:underline font-medium">
-          Create one now
-        </Link>
+      <div className="border-t border-stone-100 pt-4 text-center">
+        <p className="text-[11px] text-stone-400">
+          This portal is strictly reserved for authorized store administrators.
+        </p>
       </div>
     </div>
   );

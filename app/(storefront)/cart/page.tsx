@@ -7,13 +7,7 @@ import { formatPrice } from "@/src/lib/utils";
 import { ShoppingBag, ArrowRight } from "lucide-react";
 
 export default async function CartPage() {
-  const session = await auth();
-  const userId = session?.user?.id ?? null;
-
-  const cookieStore = await cookies();
-  const sessionToken = !userId ? (cookieStore.get("fw_cart_id")?.value ?? null) : null;
-
-  const cart = await getCartWithItems(userId, sessionToken);
+  const cart = await getCartWithItems();
   const items = cart?.items ?? [];
   const totals = getCartTotals(items.map((i) => ({ priceAtAdd: i.priceAtAdd, quantity: i.quantity })));
 

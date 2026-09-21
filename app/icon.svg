@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="100%" height="100%">
+  <defs>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE68A" />
+      <stop offset="50%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#B45309" />
+    </linearGradient>
+    <linearGradient id="capGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FEF3C7" />
+      <stop offset="100%" stop-color="#D97706" />
+    </linearGradient>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1C1917" />
+      <stop offset="100%" stop-color="#0C0A09" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background circle for high contrast in dark/light browser tabs -->
+  <rect width="128" height="128" rx="28" fill="url(#bgGrad)" />
+  <rect width="126" height="126" x="1" y="1" rx="27" fill="none" stroke="url(#goldGrad)" stroke-width="2" stroke-opacity="0.4" />
+
+  <!-- Perfume Cap / Stopper -->
+  <rect x="52" y="22" width="24" height="16" rx="4" fill="url(#capGrad)" />
+  <rect x="48" y="38" width="32" height="6" rx="2" fill="url(#goldGrad)" />
+
+  <!-- Perfume Atomizer Neck -->
+  <rect x="56" y="44" width="16" height="8" fill="#D97706" />
+
+  <!-- Bottle Body -->
+  <path d="M 38 52 C 34 52 30 56 30 62 L 32 100 C 32 106 38 110 44 110 L 84 110 C 90 110 96 106 96 100 L 98 62 C 98 56 94 52 90 52 Z" 
+        fill="none" 
+        stroke="url(#goldGrad)" 
+        stroke-width="5" 
+        stroke-linejoin="round" />
+
+  <!-- Liquid inside the bottle -->
+  <path d="M 36 74 C 48 70, 80 78, 92 74 L 91 99 C 91 103 86 106 82 106 L 46 106 C 42 106 37 103 37 99 Z" 
+        fill="url(#goldGrad)" 
+        opacity="0.35" />
+
+  <!-- Glowing Fragrance Sparkle / Core -->
+  <circle cx="64" cy="82" r="5" fill="#FEF3C7" filter="url(#glow)" />
+  <path d="M 64 71 L 66 79 L 74 81 L 66 83 L 64 91 L 62 83 L 54 81 L 62 79 Z" fill="#FDE68A" />
+</svg>

@@ -4,25 +4,36 @@ import { formatPrice } from "@/src/lib/utils";
 import { Package, Tag, ShoppingCart, AlertTriangle, Plus, ArrowRight } from "lucide-react";
 
 async function getDashboardStats() {
-  const [totalProducts, totalCategories, totalOrders, lowStockProducts, recentOrders] =
-    await Promise.all([
-      db.product.count(),
-      db.category.count(),
-      db.order.count(),
-      db.product.findMany({
-        where: { stock: { lte: 5 }, isPublished: true },
-        select: { id: true, name: true, stock: true, sku: true },
-        orderBy: { stock: "asc" },
-        take: 5,
-      }),
-      db.order.findMany({
-        take: 5,
-        orderBy: { createdAt: "desc" },
-        include: { user: { select: { name: true, email: true } } },
-      }),
-    ]);
+  try {
+    const [totalProducts, totalCategories, totalOrders, lowStockProducts, recentOrders] =
+      await Promise.all([
+        db.product.count(),
+        db.category.count(),
+        db.order.count(),
+        db.product.findMany({
+          where: { stock: { lte: 5 }, isPublished: true },
+          select: { id: true, name: true, stock: true, sku: true },
+          orderBy: { stock: "asc" },
+          take: 5,
+        }),
+        db.order.findMany({
+          take: 5,
+          orderBy: { createdAt: "desc" },
+          include: { user: { select: { name: true, email: true } } },
+        }),
+      ]);
 
-  return { totalProducts, totalCategories, totalOrders, lowStockProducts, recentOrders };
+    return { totalProducts, totalCategories, totalOrders, lowStockProducts, recentOrders };
+  } catch (err) {
+    console.error("Failed to load dashboard stats:", err);
+    return {
+      totalProducts: 0,
+      totalCategories: 0,
+      totalOrders: 0,
+      lowStockProducts: [],
+      recentOrders: [],
+    };
+  }
 }
 
 export default async function AdminDashboard() {

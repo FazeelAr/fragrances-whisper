@@ -1,9 +1,10 @@
 import { auth } from "@/src/lib/auth";
+import { redirect } from "next/navigation";
 
 export async function requireAdmin() {
   const session = await auth();
   if (!session || !session.user || session.user.role !== "ADMIN") {
-    throw new Error("Unauthorized: Admin access required");
+    redirect("/login?next=/admin");
   }
   return session.user;
 }

@@ -4,6 +4,7 @@ import { db } from "@/src/lib/db";
 import { auth } from "@/src/lib/auth";
 import { cookies } from "next/headers";
 import { getCartWithItems, getCartTotals } from "@/src/features/cart/queries";
+import { clearCart } from "@/src/features/cart/actions";
 import { checkoutSchema, type CheckoutInput } from "./schema";
 import { generateOrderNumber } from "@/src/lib/utils";
 import { initiatePayfastPayment } from "@/src/features/payments/payfast/client";
@@ -19,11 +20,8 @@ export async function placeOrder(data: CheckoutInput) {
     const session = await auth();
     const userId = session?.user?.id ?? null;
 
-    const cookieStore = await cookies();
-    const sessionToken = !userId ? (cookieStore.get("fw_cart_id")?.value ?? null) : null;
-
-    // 1. Fetch Cart
-    const cart = await getCartWithItems(userId, sessionToken);
+    // 1. Fetch Cart from cookie
+    const cart = await getCartWithItems();
     if (!cart || cart.items.length === 0) {
       return { success: false, error: "Your cart is empty." };
     }
@@ -116,11 +114,11 @@ export async function placeOrder(data: CheckoutInput) {
         }
       }
 
-      // Clear the Cart Items
-      await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
-
       return newOrder;
     });
+
+    // Clear the cart cookie
+    await clearCart();
 
     revalidatePath("/cart");
     revalidatePath("/admin/products");

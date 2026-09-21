@@ -50,9 +50,9 @@ export const GENDER_LABELS = {
 export const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "923149448877";
 export const WHATSAPP_DISPLAY = "0314 9448877";
 export const EASYPAISA_NUMBER = process.env.NEXT_PUBLIC_EASYPAISA_NUMBER || "03149448877";
-export const EASYPAISA_TITLE = process.env.NEXT_PUBLIC_EASYPAISA_TITLE || "Abdurrahman Munir";
+export const EASYPAISA_TITLE = process.env.NEXT_PUBLIC_EASYPAISA_TITLE || "shen prema";
 export const BANK_NAME = process.env.NEXT_PUBLIC_BANK_NAME || "Allied Bank";
-export const BANK_ACCOUNT_TITLE = process.env.NEXT_PUBLIC_BANK_ACCOUNT_TITLE || "Abdurrahman Munir";
+export const BANK_ACCOUNT_TITLE = process.env.NEXT_PUBLIC_BANK_ACCOUNT_TITLE || "shen prema";
 export const BANK_ACCOUNT_NUMBER = process.env.NEXT_PUBLIC_BANK_ACCOUNT_NUMBER || "0020077501030012";
 export const BANK_IBAN = process.env.NEXT_PUBLIC_BANK_IBAN || "PK86ABPA0020077501030012";
 

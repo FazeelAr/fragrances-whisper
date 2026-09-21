@@ -28,6 +28,11 @@ export const authConfig = {
 
         if (!user || !user.passwordHash) return null;
 
+        // TOP-NOTCH SECURITY: Only users with the ADMIN role can authenticate
+        if (user.role !== "ADMIN") {
+          return null;
+        }
+
         const passwordsMatch = await bcrypt.compare(
           password,
           user.passwordHash
@@ -48,7 +53,7 @@ export const authConfig = {
     jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = (user as any).role;
+        token.role = (user as { role?: string }).role;
       }
       return token;
     },
